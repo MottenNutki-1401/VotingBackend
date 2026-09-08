@@ -18,7 +18,7 @@ supabase: Client = create_client(
     SUPABASE_SECRET_KEY
 )
 
-app = FastAPI(title="San Matias Intramurals Voting API")
+app = FastAPI(title="San Matias Intramurals Voting API") ######
 
 app.add_middleware(
     CORSMiddleware,
