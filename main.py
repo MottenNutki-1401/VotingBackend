@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
 load_dotenv()
@@ -19,6 +20,18 @@ supabase: Client = create_client(
 
 app = FastAPI(title="San Matias Intramurals Voting API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 @app.get("/")
 def root():
@@ -29,3 +42,65 @@ def root():
 def get_candidates():
     response = supabase.table("candidates").select("*").execute()
     return response.data
+
+
+@app.get("/api/leaderboard")
+def get_leaderboard():
+    candidates_response = (
+        supabase.table("candidates")
+        .select("id, name, category")
+        .execute()
+    )
+
+    votes_response = (
+        supabase.table("votes")
+        .select("mr_candidate_id, ms_candidate_id")
+        .execute()
+    )
+
+    candidates = candidates_response.data
+    votes = votes_response.data
+
+    counts = {candidate["id"]: 0 for candidate in candidates}
+
+    for vote in votes:
+        mr_id = vote["mr_candidate_id"]
+        ms_id = vote["ms_candidate_id"]
+
+        if mr_id in counts:
+            counts[mr_id] += 1
+
+        if ms_id in counts:
+            counts[ms_id] += 1
+
+    mr_counts = [
+        counts[candidate["id"]]
+        for candidate in candidates
+        if candidate["category"] == "Mr"
+    ]
+
+    ms_counts = [
+        counts[candidate["id"]]
+        for candidate in candidates
+        if candidate["category"] == "Ms"
+    ]
+
+    mr_max = max(mr_counts, default=0)
+    ms_max = max(ms_counts, default=0)
+
+    result = []
+
+    for candidate in candidates:
+        maximum = mr_max if candidate["category"] == "Mr" else ms_max
+        count = counts[candidate["id"]]
+
+        progress = round((count / maximum) * 100) if maximum > 0 else 0
+
+        result.append({
+            "id": candidate["id"],
+            "name": candidate["name"],
+            "category": candidate["category"],
+            "progress": progress
+        })
+
+    return result
