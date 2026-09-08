@@ -27,7 +27,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
        " https://frontend-cc-refz-m61a38d13-comettrail-s-projects.vercel.app/"
         "https://frontend-cc-refz.vercel.app",
-       #test
+       #testdddd
     ],
     allow_credentials=True,
     allow_methods=["*"],
