@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI ,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
@@ -43,6 +43,19 @@ def get_candidates():
     response = supabase.table("candidates").select("*").execute()
     return response.data
 
+@app.post("/api/votes")
+def submit_vote(vote: dict):
+    response = (
+        supabase
+        .table("votes")
+        .insert({
+            "mr_candidate_id": vote["mr_candidate_id"],
+            "ms_candidate_id": vote["ms_candidate_id"],
+        })
+        .execute()
+    )
+
+    return {"message": "Vote recorded successfully"}
 
 @app.get("/api/leaderboard")
 def get_leaderboard():
@@ -104,3 +117,74 @@ def get_leaderboard():
         })
 
     return result
+
+# for admin result
+@app.post("/api/admin/results")
+def get_admin_results(data: dict):
+    if data.get("password") != os.getenv("ADMIN_PASSWORD"):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password"
+        )
+
+    candidates_response = (
+        supabase
+        .table("candidates")
+        .select("id, name, category")
+        .execute()
+    )
+
+    votes_response = (
+        supabase
+        .table("votes")
+        .select("id, mr_candidate_id, ms_candidate_id, created_at")
+        .execute()
+    )
+
+    candidates = candidates_response.data
+    votes = votes_response.data
+
+    counts = {
+        candidate["id"]: 0
+        for candidate in candidates
+    }
+
+    for vote in votes:
+        mr_id = vote["mr_candidate_id"]
+        ms_id = vote["ms_candidate_id"]
+
+        if mr_id in counts:
+            counts[mr_id] += 1
+
+        if ms_id in counts:
+            counts[ms_id] += 1
+
+    results = []
+
+    for candidate in candidates:
+        results.append({
+            "id": candidate["id"],
+            "name": candidate["name"],
+            "category": candidate["category"],
+            "votes": counts[candidate["id"]]
+        })
+
+    return results
+
+@app.post("/api/admin/reset")
+def reset_votes(data: dict):
+    if data.get("password") != os.getenv("ADMIN_PASSWORD"):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password"
+        )
+
+    response = (
+        supabase
+        .table("votes")
+        .delete()
+        .gte("id", 1)
+        .execute()
+    )
+
+    return {"message": "All votes have been reset successfully"}
