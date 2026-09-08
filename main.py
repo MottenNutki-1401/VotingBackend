@@ -18,7 +18,7 @@ supabase: Client = create_client(
     SUPABASE_SECRET_KEY
 )
 
-app = FastAPI(title="San Matias Intramurals Voting API") ######
+app = FastAPI(title="San Matias Intramurals Voting API") ###
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +26,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
        " https://frontend-cc-refz-m61a38d13-comettrail-s-projects.vercel.app/"
+        "https://frontend-cc-refz.vercel.app",
        #test
     ],
     allow_credentials=True,
